@@ -57,8 +57,10 @@ public class InternalRequestSignature {
             throw new ConnectException(e);
         }
         byte[] requestSignature = sign(mac, key, requestBody);
-        request.header(InternalRequestSignature.SIGNATURE_HEADER, Base64.getEncoder().encodeToString(requestSignature))
-               .header(InternalRequestSignature.SIGNATURE_ALGORITHM_HEADER, signatureAlgorithm);
+        request.headers((headers) -> {
+            headers.add(InternalRequestSignature.SIGNATURE_HEADER, Base64.getEncoder().encodeToString(requestSignature));
+            headers.add(InternalRequestSignature.SIGNATURE_ALGORITHM_HEADER, signatureAlgorithm);
+        });
     }
 
     /**
