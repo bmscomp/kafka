@@ -27,13 +27,13 @@ import org.apache.kafka.connect.runtime.rest.entities.ErrorMessage;
 import org.apache.kafka.connect.runtime.rest.errors.ConnectRestException;
 import org.apache.kafka.connect.runtime.rest.util.SSLUtils;
 import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.HttpClientTransport;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.client.util.StringContentProvider;
+import org.eclipse.jetty.client.util.StringRequestContent;
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.io.ClientConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,8 +62,7 @@ public class RestClient {
 
     // VisibleForTesting
     HttpClient httpClient(SslContextFactory sslContextFactory) {
-        new SslContextFactory.Client();
-        return sslContextFactory != null ? new HttpClient(sslContextFactory) : new HttpClient();
+        return sslContextFactory != null ? new HttpClient((HttpClientTransport) sslContextFactory) : new HttpClient();
     }
 
     /**
@@ -140,7 +139,7 @@ public class RestClient {
             addHeadersToRequest(headers, req);
 
             if (serializedBody != null) {
-                req.content(new StringContentProvider(serializedBody, StandardCharsets.UTF_8), "application/json");
+                req.body(new StringRequestContent(serializedBody, StandardCharsets.UTF_8));
             }
 
             if (sessionKey != null && requestSignatureAlgorithm != null) {
@@ -194,7 +193,7 @@ public class RestClient {
         if (headers != null) {
             String credentialAuthorization = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
             if (credentialAuthorization != null) {
-                req.header(HttpHeaders.AUTHORIZATION, credentialAuthorization);
+                req.headers((header) -> header.add(HttpHeaders.AUTHORIZATION, credentialAuthorization));
             }
         }
     }
