@@ -33,6 +33,7 @@ import org.eclipse.jetty.client.util.StringContentProvider;
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.io.ClientConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,7 @@ public class RestClient {
 
     // VisibleForTesting
     HttpClient httpClient(SslContextFactory sslContextFactory) {
+        new SslContextFactory.Client();
         return sslContextFactory != null ? new HttpClient(sslContextFactory) : new HttpClient();
     }
 

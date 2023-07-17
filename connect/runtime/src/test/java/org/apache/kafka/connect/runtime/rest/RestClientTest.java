@@ -38,7 +38,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.MockitoRule;
 
 import javax.crypto.SecretKey;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;

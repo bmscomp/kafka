@@ -40,7 +40,7 @@ public class SSLUtils {
     /**
      * Configures SSL/TLS for HTTPS Jetty Server using configs with the given prefix
      */
-    public static SslContextFactory createServerSideSslContextFactory(AbstractConfig config, String prefix) {
+    public static SslContextFactory.Server createServerSideSslContextFactory(AbstractConfig config, String prefix) {
         Map<String, Object> sslConfigValues = config.valuesWithPrefixAllOrNothing(prefix);
 
         final SslContextFactory.Server ssl = new SslContextFactory.Server();
@@ -56,7 +56,7 @@ public class SSLUtils {
     /**
      * Configures SSL/TLS for HTTPS Jetty Server
      */
-    public static SslContextFactory createServerSideSslContextFactory(AbstractConfig config) {
+    public static SslContextFactory.Server createServerSideSslContextFactory(AbstractConfig config) {
         return createServerSideSslContextFactory(config, "listeners.https.");
     }
 
