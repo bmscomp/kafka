@@ -18,6 +18,7 @@
 package org.apache.kafka.trogdor.agent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import jakarta.ws.rs.core.UriBuilder;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -38,8 +39,6 @@ import org.apache.kafka.trogdor.task.TaskSpec;
 import org.apache.kafka.trogdor.rest.UptimeResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.core.UriBuilder;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;

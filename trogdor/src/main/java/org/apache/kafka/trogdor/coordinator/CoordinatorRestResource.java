@@ -16,6 +16,9 @@
  */
 package org.apache.kafka.trogdor.coordinator;
 
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.kafka.trogdor.rest.CoordinatorShutdownRequest;
 import org.apache.kafka.trogdor.rest.CoordinatorStatusResponse;
 import org.apache.kafka.trogdor.rest.CreateTaskRequest;
@@ -29,20 +32,7 @@ import org.apache.kafka.trogdor.rest.TasksRequest;
 import org.apache.kafka.trogdor.rest.TasksResponse;
 import org.apache.kafka.trogdor.rest.UptimeResponse;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import jakarta.servlet.ServletContext;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,11 +40,11 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * The REST resource for the Coordinator. This describes the RPCs which the coordinator
  * can accept.
- *
+ * <p>
  * RPCs should be idempotent.  This is important because if the server's response is
  * lost, the client will simply retransmit the same request. The server's response must
  * be the same the second time around.
- *
+ * <p>
  * We return the empty JSON object {} rather than void for RPCs that have no results.
  * This ensures that if we want to add more return results later, we can do so in a
  * compatible way.
@@ -65,7 +55,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class CoordinatorRestResource {
     private final AtomicReference<Coordinator> coordinator = new AtomicReference<Coordinator>();
 
-    @javax.ws.rs.core.Context
+    @jakarta.ws.rs.core.Context
     private ServletContext context;
 
     public void setCoordinator(Coordinator myCoordinator) {
@@ -108,11 +98,11 @@ public class CoordinatorRestResource {
     @GET
     @Path("/tasks/")
     public Response tasks(@QueryParam("taskId") List<String> taskId,
-            @DefaultValue("0") @QueryParam("firstStartMs") long firstStartMs,
-            @DefaultValue("0") @QueryParam("lastStartMs") long lastStartMs,
-            @DefaultValue("0") @QueryParam("firstEndMs") long firstEndMs,
-            @DefaultValue("0") @QueryParam("lastEndMs") long lastEndMs,
-            @DefaultValue("") @QueryParam("state") String state) throws Throwable {
+                          @DefaultValue("0") @QueryParam("firstStartMs") long firstStartMs,
+                          @DefaultValue("0") @QueryParam("lastStartMs") long lastStartMs,
+                          @DefaultValue("0") @QueryParam("firstEndMs") long firstEndMs,
+                          @DefaultValue("0") @QueryParam("lastEndMs") long lastEndMs,
+                          @DefaultValue("") @QueryParam("state") String state) throws Throwable {
         boolean isEmptyState = state.equals("");
         if (!isEmptyState && !TaskStateType.Constants.VALUES.contains(state)) {
             return Response.status(400).entity(

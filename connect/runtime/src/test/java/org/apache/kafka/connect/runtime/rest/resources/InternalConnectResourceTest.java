@@ -17,6 +17,8 @@
 package org.apache.kafka.connect.runtime.rest.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.UriInfo;
 import org.apache.kafka.connect.errors.NotFoundException;
 import org.apache.kafka.connect.runtime.Herder;
 import org.apache.kafka.connect.runtime.rest.InternalRequestSignature;
@@ -31,8 +33,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Stubber;
 
 import javax.crypto.Mac;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;

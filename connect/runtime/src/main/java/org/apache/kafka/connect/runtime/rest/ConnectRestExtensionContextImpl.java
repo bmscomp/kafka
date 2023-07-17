@@ -17,10 +17,10 @@
 
 package org.apache.kafka.connect.runtime.rest;
 
+import jakarta.ws.rs.core.Configurable;
 import org.apache.kafka.connect.health.ConnectClusterState;
 import org.apache.kafka.connect.rest.ConnectRestExtensionContext;
 
-import javax.ws.rs.core.Configurable;
 
 public class ConnectRestExtensionContextImpl implements ConnectRestExtensionContext {
 

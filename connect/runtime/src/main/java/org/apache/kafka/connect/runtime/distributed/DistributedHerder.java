@@ -16,6 +16,8 @@
  */
 package org.apache.kafka.connect.runtime.distributed;
 
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.config.ConfigDef;
@@ -79,8 +81,6 @@ import org.slf4j.Logger;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

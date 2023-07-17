@@ -17,6 +17,7 @@
 
 package org.apache.kafka.connect.rest.basic.auth.extension;
 
+import jakarta.ws.rs.core.Configurable;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.rest.ConnectRestExtensionContext;
 import org.junit.jupiter.api.AfterEach;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import javax.security.auth.login.Configuration;
-import javax.ws.rs.core.Configurable;
 
 import java.io.IOException;
 import java.util.Collections;

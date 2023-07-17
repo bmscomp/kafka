@@ -55,7 +55,7 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.NotFoundException;
+import jakarta.ws.rs.NotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;

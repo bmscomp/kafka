@@ -19,6 +19,8 @@ package org.apache.kafka.connect.runtime.rest;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Response;
 import org.apache.kafka.connect.runtime.distributed.Crypto;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ErrorMessage;
@@ -36,8 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -96,8 +96,8 @@ public class RestClient {
      * @return The deserialized response to the HTTP request, or null if no data is expected.
      */
     public <T> HttpResponse<T> httpRequest(String url, String method, HttpHeaders headers, Object requestBodyData,
-                                                  TypeReference<T> responseFormat,
-                                                  SecretKey sessionKey, String requestSignatureAlgorithm) {
+                                           TypeReference<T> responseFormat,
+                                           SecretKey sessionKey, String requestSignatureAlgorithm) {
         // Only try to load SSL configs if we have to (see KAFKA-14816)
         SslContextFactory sslContextFactory = url.startsWith("https://")
                 ? SSLUtils.createClientSideSslContextFactory(config)

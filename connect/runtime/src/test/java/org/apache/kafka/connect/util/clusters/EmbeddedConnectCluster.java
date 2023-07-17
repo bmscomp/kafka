@@ -18,6 +18,7 @@ package org.apache.kafka.connect.util.clusters;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.ws.rs.core.Response;
 import org.apache.kafka.common.utils.Exit;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -36,7 +37,6 @@ import org.eclipse.jetty.client.util.StringContentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;

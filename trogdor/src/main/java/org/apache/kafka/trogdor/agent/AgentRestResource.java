@@ -16,6 +16,8 @@
  */
 package org.apache.kafka.trogdor.agent;
 
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.kafka.trogdor.rest.AgentStatusResponse;
 import org.apache.kafka.trogdor.rest.CreateWorkerRequest;
 import org.apache.kafka.trogdor.rest.DestroyWorkerRequest;
@@ -23,17 +25,7 @@ import org.apache.kafka.trogdor.rest.Empty;
 import org.apache.kafka.trogdor.rest.StopWorkerRequest;
 import org.apache.kafka.trogdor.rest.UptimeResponse;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
+import jakarta.servlet.ServletContext;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -53,7 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class AgentRestResource {
     private final AtomicReference<Agent> agent = new AtomicReference<>(null);
 
-    @javax.ws.rs.core.Context
+    @jakarta.ws.rs.core.Context
     private ServletContext context;
 
     public void setAgent(Agent myAgent) {

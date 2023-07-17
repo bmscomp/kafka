@@ -27,7 +27,7 @@ import org.mockito.ArgumentCaptor;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.HttpHeaders;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
