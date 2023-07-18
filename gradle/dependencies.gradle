@@ -60,7 +60,7 @@ String mockitoVersion
 if (scalaVersion == "2.12")
   mockitoVersion = "4.9.0"
 else
-  mockitoVersion = "4.11.0"
+  mockitoVersion = "5.2.0"
 
 // easymock 5.1 is required for Java 20 support, but it breaks tests using powermock
 // powermock doesn't work with Java 16 or newer and hence it's safe to use easymock 5.1 in this case only
