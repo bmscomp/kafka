@@ -92,7 +92,7 @@ ext {
   userEnableTestCoverage = project.hasProperty("enableTestCoverage") ? enableTestCoverage : false
 
   userKeepAliveModeString = project.hasProperty("keepAliveMode") ? keepAliveMode : "daemon"
-  userKeepAliveMode = KeepAliveMode.values().find(m -> m.name().toLowerCase().equals(userKeepAliveModeString))
+  userKeepAliveMode = KeepAliveMode.values().find(m -> m.name().toLowerCase() == userKeepAliveModeString)
   if (userKeepAliveMode == null) {
     def keepAliveValues = KeepAliveMode.values().collect(m -> m.name.toLowerCase())
     throw new GradleException("Unexpected value for keepAliveMode property. Expected one of $keepAliveValues, but received: $userKeepAliveModeString")
@@ -235,7 +235,7 @@ subprojects {
 
   // We use the shadow plugin for the jmh-benchmarks module and the `-all` jar can get pretty large, so
   // don't publish it
-  def shouldPublish = !project.name.equals('jmh-benchmarks')
+  def shouldPublish = project.name != 'jmh-benchmarks'
 
   if (shouldPublish) {
     apply plugin: 'maven-publish'
@@ -248,7 +248,7 @@ subprojects {
   }
 
   // apply the eclipse plugin only to subprojects that hold code. 'connect' is just a folder.
-  if (!project.name.equals('connect')) {
+  if (project.name != 'connect') {
     apply plugin: 'eclipse'
     fineTuneEclipseClasspathFile(eclipse, project)
   }
@@ -644,13 +644,13 @@ subprojects {
     ]
 
     // See README.md for details on this option and the meaning of each value
-    if (userScalaOptimizerMode.equals("method"))
+    if (userScalaOptimizerMode == "method")
       scalaCompileOptions.additionalParameters += ["-opt:l:method"]
     else if (userScalaOptimizerMode.startsWith("inline-")) {
       List<String> inlineFrom = ["-opt-inline-from:org.apache.kafka.**"]
-      if (project.name.equals('core'))
+      if (project.name == 'core')
         inlineFrom.add("-opt-inline-from:kafka.**")
-      if (userScalaOptimizerMode.equals("inline-scala"))
+      if (userScalaOptimizerMode == "inline-scala")
         inlineFrom.add("-opt-inline-from:scala.**")
 
       scalaCompileOptions.additionalParameters += ["-opt:l:inline"]
@@ -761,7 +761,7 @@ def fineTuneEclipseClasspathFile(eclipse, project) {
     beforeMerged { cp ->
       cp.entries.clear()
       // for the core project add the directories defined under test/scala as separate source directories
-      if (project.name.equals('core')) {
+      if (project.name == 'core') {
         cp.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder("src/test/scala/integration", null))
         cp.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder("src/test/scala/other", null))
         cp.entries.add(new org.gradle.plugins.ide.eclipse.model.SourceFolder("src/test/scala/unit", null))
@@ -769,8 +769,8 @@ def fineTuneEclipseClasspathFile(eclipse, project) {
     }
     whenMerged { cp ->
       // for the core project exclude the separate sub-directories defined under test/scala. These are added as source dirs above
-      if (project.name.equals('core')) {
-        cp.entries.findAll { it.kind == "src" && it.path.equals("src/test/scala") }*.excludes = ["integration/", "other/", "unit/"]
+      if (project.name == 'core') {
+        cp.entries.findAll { it.kind == "src" && it.path == "src/test/scala" }*.excludes = ["integration/", "other/", "unit/"]
       }
       /*
        * Set all eclipse build output to go to 'build_eclipse' directory. This is to ensure that gradle and eclipse use different
