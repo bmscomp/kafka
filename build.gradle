@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import org.ajoberstar.grgit.Grgit
-import org.gradle.api.JavaVersion
 
 import java.nio.charset.StandardCharsets
 
@@ -447,7 +446,8 @@ subprojects {
     }
   }
 
-  task integrationTest(type: Test, dependsOn: compileJava) {
+  tasks.register('integrationTest', Test) {
+    dependsOn compileJava
     maxParallelForks = maxTestForks
     ignoreFailures = userIgnoreFailures
 
@@ -471,7 +471,7 @@ subprojects {
         useJUnitPlatform {
           includeTags "integration"
           includeTags "org.apache.kafka.test.IntegrationTest"
-	  // Both engines are needed to run JUnit 4 tests alongside JUnit 5 tests.
+          // Both engines are needed to run JUnit 4 tests alongside JUnit 5 tests.
           // junit-vintage (JUnit 4) can be removed once the JUnit 4 migration is complete.
           includeEngines "junit-vintage", "junit-jupiter"
         }
