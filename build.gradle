@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import org.ajoberstar.grgit.Grgit
-import org.gradle.api.JavaVersion
 
 import java.nio.charset.StandardCharsets
 
@@ -35,7 +34,7 @@ plugins {
   id 'idea'
   id 'jacoco'
   id 'java-library'
-  id 'org.owasp.dependencycheck' version '8.2.1'
+  id 'org.owasp.dependencycheck' version '8.4.0'
   id 'org.nosphere.apache.rat' version "0.8.0"
   id "io.swagger.core.v3.swagger-gradle-plugin" version "2.2.8"
 
@@ -1392,33 +1391,33 @@ project(':clients') {
     delete "$buildDir/kafka/"
   }
 
-  task processMessages(type:JavaExec) {
+  tasks.register('processMessages', JavaExec) {
     mainClass = "org.apache.kafka.message.MessageGenerator"
     classpath = configurations.generator
-    args = [ "-p", "org.apache.kafka.common.message",
-             "-o", "src/generated/java/org/apache/kafka/common/message",
-             "-i", "src/main/resources/common/message",
-             "-t", "ApiMessageTypeGenerator",
-             "-m", "MessageDataGenerator", "JsonConverterGenerator"
-           ]
+    args = ["-p", "org.apache.kafka.common.message",
+            "-o", "src/generated/java/org/apache/kafka/common/message",
+            "-i", "src/main/resources/common/message",
+            "-t", "ApiMessageTypeGenerator",
+            "-m", "MessageDataGenerator", "JsonConverterGenerator"
+    ]
     inputs.dir("src/main/resources/common/message")
-        .withPropertyName("messages")
-        .withPathSensitivity(PathSensitivity.RELATIVE)
+            .withPropertyName("messages")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.cacheIf { true }
     outputs.dir("src/generated/java/org/apache/kafka/common/message")
   }
 
-  task processTestMessages(type:JavaExec) {
+  tasks.register('processTestMessages', JavaExec) {
     mainClass = "org.apache.kafka.message.MessageGenerator"
     classpath = configurations.generator
-    args = [ "-p", "org.apache.kafka.common.message",
-             "-o", "src/generated-test/java/org/apache/kafka/common/message",
-             "-i", "src/test/resources/common/message",
-             "-m", "MessageDataGenerator", "JsonConverterGenerator"
-           ]
+    args = ["-p", "org.apache.kafka.common.message",
+            "-o", "src/generated-test/java/org/apache/kafka/common/message",
+            "-i", "src/test/resources/common/message",
+            "-m", "MessageDataGenerator", "JsonConverterGenerator"
+    ]
     inputs.dir("src/test/resources/common/message")
-        .withPropertyName("testMessages")
-        .withPathSensitivity(PathSensitivity.RELATIVE)
+            .withPropertyName("testMessages")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.cacheIf { true }
     outputs.dir("src/generated-test/java/org/apache/kafka/common/message")
   }
@@ -1916,7 +1915,7 @@ project(':tools') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -1966,7 +1965,7 @@ project(':trogdor') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -2070,17 +2069,17 @@ project(':streams') {
     generator project(':generator')
   }
 
-  task processMessages(type:JavaExec) {
+  tasks.register('processMessages', JavaExec) {
     mainClass = "org.apache.kafka.message.MessageGenerator"
     classpath = configurations.generator
-    args = [ "-p", "org.apache.kafka.streams.internals.generated",
-             "-o", "src/generated/java/org/apache/kafka/streams/internals/generated",
-             "-i", "src/main/resources/common/message",
-             "-m", "MessageDataGenerator"
-           ]
+    args = ["-p", "org.apache.kafka.streams.internals.generated",
+            "-o", "src/generated/java/org/apache/kafka/streams/internals/generated",
+            "-i", "src/main/resources/common/message",
+            "-m", "MessageDataGenerator"
+    ]
     inputs.dir("src/main/resources/common/message")
-        .withPropertyName("messages")
-        .withPathSensitivity(PathSensitivity.RELATIVE)
+            .withPropertyName("messages")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.cacheIf { true }
     outputs.dir("src/generated/java/org/apache/kafka/streams/internals/generated")
   }
@@ -2106,7 +2105,7 @@ project(':streams') {
     exclude "**/org/apache/kafka/streams/internals/**", "**/org/apache/kafka/streams/**/internals/**"
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.runtimeClasspath) {
       exclude('kafka-clients*')
     }
@@ -2144,10 +2143,12 @@ project(':streams') {
     dependsOn testJar
   }
 
-  task genStreamsConfigDocs(type: JavaExec) {
+  tasks.register('genStreamsConfigDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.streams.StreamsConfig'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "streams_config.html").newOutputStream()
   }
 
@@ -2923,7 +2924,7 @@ project(':connect:file') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -2963,7 +2964,7 @@ project(':connect:basic-auth-extension') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -3022,7 +3023,7 @@ project(':connect:mirror') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -3035,31 +3036,39 @@ project(':connect:mirror') {
     duplicatesStrategy 'exclude'
   }
 
-  task genMirrorConnectorConfigDocs(type: JavaExec) {
+  tasks.register('genMirrorConnectorConfigDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.mirror.MirrorConnectorConfig'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "mirror_connector_config.html").newOutputStream()
   }
 
-  task genMirrorSourceConfigDocs(type: JavaExec) {
+  tasks.register('genMirrorSourceConfigDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.mirror.MirrorSourceConfig'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "mirror_source_config.html").newOutputStream()
   }
 
-  task genMirrorCheckpointConfigDocs(type: JavaExec) {
+  tasks.register('genMirrorCheckpointConfigDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.mirror.MirrorCheckpointConfig'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "mirror_checkpoint_config.html").newOutputStream()
   }
 
-  task genMirrorHeartbeatConfigDocs(type: JavaExec) {
+  tasks.register('genMirrorHeartbeatConfigDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.mirror.MirrorHeartbeatConfig'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "mirror_heartbeat_config.html").newOutputStream()
   }
 
@@ -3085,7 +3094,7 @@ project(':connect:mirror-client') {
     enabled = true
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -3115,7 +3124,8 @@ project(':connect:test-plugins') {
   }
 }
 
-task aggregatedJavadoc(type: Javadoc, dependsOn: compileJava) {
+tasks.register('aggregatedJavadoc', Javadoc) {
+  dependsOn compileJava
   def projectsWithJavadoc = subprojects.findAll { it.javadoc.enabled }
   source = projectsWithJavadoc.collect { it.sourceSets.main.allJava }
   classpath = files(projectsWithJavadoc.collect { it.sourceSets.main.compileClasspath })
