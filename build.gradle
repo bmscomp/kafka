@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+import io.swagger.v3.plugins.gradle.tasks.ResolveTask
 import org.ajoberstar.grgit.Grgit
 
 import java.nio.charset.StandardCharsets
@@ -2920,7 +2922,7 @@ project(':connect:runtime') {
     expand(kafkaVersion: "$rootProject.version")
   }
 
-  task genConnectOpenAPIDocs(type: io.swagger.v3.plugins.gradle.tasks.ResolveTask, dependsOn: setVersionInOpenAPISpec) {
+  task genConnectOpenAPIDocs(type: ResolveTask, dependsOn: setVersionInOpenAPISpec) {
     classpath = sourceSets.main.runtimeClasspath
 
     buildClasspath = classpath + configurations.swagger
