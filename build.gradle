@@ -803,7 +803,7 @@ def checkstyleConfigProperties(configFileName) {
 
 // Aggregates all jacoco results into the root project directory
 if (userEnableTestCoverage) {
-  task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  task jacocoRootReport(type: JacocoReport) {
     def javaProjects = subprojects.findAll { it.path != ':core' }
 
     description = 'Generates an aggregate report from all subprojects'
