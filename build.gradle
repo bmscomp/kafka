@@ -279,10 +279,13 @@ subprojects {
       options.compilerArgs << "-Xlint:-options"
   }
 
-  // We should only set this if Java version is < 9 (--release is recommended for >= 9), but the Scala plugin for IntelliJ sets
-  // `-target` incorrectly if this is unset
-  sourceCompatibility = minJavaVersion
-  targetCompatibility = minJavaVersion
+
+  java {
+    // We should only set this if Java version is < 9 (--release is recommended for >= 9), but the Scala plugin for IntelliJ sets
+    // `-target` incorrectly if this is unset
+    sourceCompatibility = minJavaVersion
+    targetCompatibility = minJavaVersion
+  }
 
   if (shouldPublish) {
 
@@ -446,7 +449,8 @@ subprojects {
     }
   }
 
-  task integrationTest(type: Test, dependsOn: compileJava) {
+  tasks.register('integrationTest', Test) {
+    dependsOn compileJava
     maxParallelForks = maxTestForks
     ignoreFailures = userIgnoreFailures
 
@@ -470,7 +474,7 @@ subprojects {
         useJUnitPlatform {
           includeTags "integration"
           includeTags "org.apache.kafka.test.IntegrationTest"
-	  // Both engines are needed to run JUnit 4 tests alongside JUnit 5 tests.
+          // Both engines are needed to run JUnit 4 tests alongside JUnit 5 tests.
           // junit-vintage (JUnit 4) can be removed once the JUnit 4 migration is complete.
           includeEngines "junit-vintage", "junit-jupiter"
         }
@@ -491,7 +495,8 @@ subprojects {
     }
   }
 
-  task unitTest(type: Test, dependsOn: compileJava) {
+  tasks.register('unitTest', Test) {
+    dependsOn compileJava
     maxParallelForks = maxTestForks
     ignoreFailures = userIgnoreFailures
 
@@ -513,7 +518,7 @@ subprojects {
         useJUnitPlatform {
           excludeTags "integration"
           excludeTags "org.apache.kafka.test.IntegrationTest"
-	  // Both engines are needed to run JUnit 4 tests alongside JUnit 5 tests.
+          // Both engines are needed to run JUnit 4 tests alongside JUnit 5 tests.
           // junit-vintage (JUnit 4) can be removed once the JUnit 4 migration is complete.
           includeEngines "junit-vintage", "junit-jupiter"
         }
@@ -547,21 +552,22 @@ subprojects {
     from "$rootDir/NOTICE"
   }
 
-  task srcJar(type: Jar) {
+  tasks.register('srcJar', Jar) {
     archiveClassifier = 'sources'
     from "$rootDir/LICENSE"
     from "$rootDir/NOTICE"
     from sourceSets.main.allSource
   }
 
-  task javadocJar(type: Jar, dependsOn: javadoc) {
+  tasks.register('javadocJar', Jar) {
+    dependsOn javadoc
     archiveClassifier = 'javadoc'
     from "$rootDir/LICENSE"
     from "$rootDir/NOTICE"
     from javadoc.destinationDir
   }
 
-  task docsJar(dependsOn: javadocJar)
+  tasks.register('docsJar') { dependsOn javadocJar }
 
   javadoc {
     options.charSet = 'UTF-8'
@@ -581,14 +587,15 @@ subprojects {
   task systemTestLibs(dependsOn: jar)
 
   if (!sourceSets.test.allSource.isEmpty()) {
-    task testJar(type: Jar) {
+    tasks.register('testJar', Jar) {
       archiveClassifier = 'test'
       from "$rootDir/LICENSE"
       from "$rootDir/NOTICE"
       from sourceSets.test.output
     }
 
-    task testSrcJar(type: Jar, dependsOn: testJar) {
+    tasks.register('testSrcJar', Jar) {
+      dependsOn testJar
       archiveClassifier = 'test-sources'
       from "$rootDir/LICENSE"
       from "$rootDir/NOTICE"
@@ -603,7 +610,8 @@ subprojects {
       zincVersion = versions.zinc
     }
 
-    task scaladocJar(type:Jar, dependsOn: scaladoc) {
+    tasks.register('scaladocJar', Jar) {
+      dependsOn scaladoc
       archiveClassifier = 'scaladoc'
       from "$rootDir/LICENSE"
       from "$rootDir/NOTICE"
@@ -644,13 +652,13 @@ subprojects {
     ]
 
     // See README.md for details on this option and the meaning of each value
-    if (userScalaOptimizerMode.equals("method"))
+    if (userScalaOptimizerMode == "method")
       scalaCompileOptions.additionalParameters += ["-opt:l:method"]
     else if (userScalaOptimizerMode.startsWith("inline-")) {
       List<String> inlineFrom = ["-opt-inline-from:org.apache.kafka.**"]
-      if (project.name.equals('core'))
+      if (project.name == 'core')
         inlineFrom.add("-opt-inline-from:kafka.**")
-      if (userScalaOptimizerMode.equals("inline-scala"))
+      if (userScalaOptimizerMode == "inline-scala")
         inlineFrom.add("-opt-inline-from:scala.**")
 
       scalaCompileOptions.additionalParameters += ["-opt:l:inline"]
@@ -955,7 +963,7 @@ project(':core') {
     testImplementation.exclude module: 'api-ldap-schema-data'
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -1136,7 +1144,7 @@ project(':core') {
     )
   }
 
-  tasks.create(name: "copyDependantTestLibs", type: Copy) {
+  tasks.register('copyDependantTestLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('*.jar')
     }
@@ -2011,7 +2019,7 @@ project(':shell') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('jline-*jar')
     }
@@ -2211,7 +2219,7 @@ project(':streams:streams-scala') {
     scalaDocOptions.additionalParameters = ["-no-link-warnings"]
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.runtimeClasspath) {
       exclude('kafka-streams*')
     }
@@ -2257,7 +2265,7 @@ project(':streams:test-utils') {
     include "**/org/apache/kafka/streams/test/**"
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.runtimeClasspath) {
       exclude('kafka-streams*')
     }
@@ -2295,7 +2303,7 @@ project(':streams:examples') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.runtimeClasspath) {
       exclude('kafka-streams*')
     }
@@ -2666,7 +2674,7 @@ project(':connect:api') {
     include "**/org/apache/kafka/connect/**" // needed for the `aggregatedJavadoc` task
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -2703,7 +2711,7 @@ project(':connect:transforms') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -2743,7 +2751,7 @@ project(':connect:json') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       include('slf4j-log4j12*')
       include('reload4j*jar')
@@ -2820,7 +2828,7 @@ project(':connect:runtime') {
     enabled = false
   }
 
-  tasks.create(name: "copyDependantLibs", type: Copy) {
+  tasks.register('copyDependantLibs', Copy) {
     from (configurations.testRuntimeClasspath) {
       // No need to copy log4j since the module has an explicit dependency on that
       include('slf4j-log4j12*')
@@ -2837,52 +2845,64 @@ project(':connect:runtime') {
     dependsOn copyDependantLibs
   }
 
-  task genConnectConfigDocs(type: JavaExec) {
+  tasks.register('genConnectConfigDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.runtime.distributed.DistributedConfig'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "connect_config.html").newOutputStream()
   }
 
-  task genSinkConnectorConfigDocs(type: JavaExec) {
+  tasks.register('genSinkConnectorConfigDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.runtime.SinkConnectorConfig'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "sink_connector_config.html").newOutputStream()
   }
 
-  task genSourceConnectorConfigDocs(type: JavaExec) {
+  tasks.register('genSourceConnectorConfigDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.runtime.SourceConnectorConfig'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "source_connector_config.html").newOutputStream()
   }
 
-  task genConnectTransformationDocs(type: JavaExec) {
+  tasks.register('genConnectTransformationDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.tools.TransformationDoc'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "connect_transforms.html").newOutputStream()
   }
 
-  task genConnectPredicateDocs(type: JavaExec) {
+  tasks.register('genConnectPredicateDocs', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.tools.PredicateDoc'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "connect_predicates.html").newOutputStream()
   }
 
-  task genConnectMetricsDocs(type: JavaExec) {
+  tasks.register('genConnectMetricsDocs', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'org.apache.kafka.connect.runtime.ConnectMetrics'
-    if( !generatedDocsDir.exists() ) { generatedDocsDir.mkdirs() }
+    if (!generatedDocsDir.exists()) {
+      generatedDocsDir.mkdirs()
+    }
     standardOutput = new File(generatedDocsDir, "connect_metrics.html").newOutputStream()
   }
 
-  task setVersionInOpenAPISpec(type: Copy) {
+  tasks.register('setVersionInOpenAPISpec', Copy) {
     from "$rootDir/gradle/openapi.template"
     into "$buildDir/resources/docs"
-    rename ('openapi.template', 'openapi.yaml')
+    rename('openapi.template', 'openapi.yaml')
     expand(kafkaVersion: "$rootProject.version")
   }
 
