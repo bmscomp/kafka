@@ -16,11 +16,11 @@
 */
 package kafka.zk
 
-import java.util.{Optional, Properties}
+import java.util.{Collections, Optional, Properties}
 import kafka.admin.RackAwareMode
 import kafka.common.TopicAlreadyMarkedForDeletionException
 import kafka.controller.ReplicaAssignment
-import kafka.server.{ConfigEntityName, ConfigType, DynamicConfig}
+import kafka.server.{ConfigEntityName, DynamicConfig, KafkaConfig}
 import kafka.utils._
 import kafka.utils.Implicits._
 import org.apache.kafka.admin.{AdminUtils, BrokerMetadata}
@@ -28,6 +28,7 @@ import org.apache.kafka.common.{TopicPartition, Uuid}
 import org.apache.kafka.common.errors._
 import org.apache.kafka.common.internals.Topic
 import org.apache.kafka.server.common.AdminOperationException
+import org.apache.kafka.server.config.ConfigType
 import org.apache.kafka.storage.internals.log.LogConfig
 import org.apache.zookeeper.KeeperException.NodeExistsException
 
@@ -40,7 +41,8 @@ import scala.collection.{Map, Seq}
  * This is an internal class and no compatibility guarantees are provided,
  * see org.apache.kafka.clients.admin.AdminClient for publicly supported APIs.
  */
-class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
+class AdminZkClient(zkClient: KafkaZkClient,
+                    kafkaConfig: Option[KafkaConfig] = None) extends Logging {
 
   /**
    * Creates the topic with given configuration
@@ -109,7 +111,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
       s"assignment $partitionReplicaAssignment")
 
     // write out the config if there is any, this isn't transactional with the partition assignments
-    zkClient.setOrCreateEntityConfigs(ConfigType.Topic, topic, config)
+    zkClient.setOrCreateEntityConfigs(ConfigType.TOPIC, topic, config)
 
     // create the partition assignment
     writeTopicPartitionAssignment(topic, partitionReplicaAssignment.map { case (k, v) => k -> ReplicaAssignment(v) },
@@ -159,7 +161,9 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
         partitionReplicaAssignment.keys.filter(_ >= 0).sum != sequenceSum)
         throw new InvalidReplicaAssignmentException("partitions should be a consecutive 0-based integer sequence")
 
-    LogConfig.validate(config)
+    LogConfig.validate(config,
+      kafkaConfig.map(_.extractLogConfigMap).getOrElse(Collections.emptyMap()),
+      kafkaConfig.exists(_.isRemoteLogStorageSystemEnabled))
   }
 
   private def writeTopicPartitionAssignment(topic: String, replicaAssignment: Map[Int, ReplicaAssignment],
@@ -361,12 +365,12 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
   def changeConfigs(entityType: String, entityName: String, configs: Properties, isUserClientId: Boolean = false): Unit = {
 
     entityType match {
-      case ConfigType.Topic => changeTopicConfig(entityName, configs)
-      case ConfigType.Client => changeClientIdConfig(entityName, configs)
-      case ConfigType.User => changeUserOrUserClientIdConfig(entityName, configs, isUserClientId)
-      case ConfigType.Broker => changeBrokerConfig(parseBroker(entityName), configs)
-      case ConfigType.Ip => changeIpConfig(entityName, configs)
-      case _ => throw new IllegalArgumentException(s"$entityType is not a known entityType. Should be one of ${ConfigType.all}")
+      case ConfigType.TOPIC => changeTopicConfig(entityName, configs)
+      case ConfigType.CLIENT => changeClientIdConfig(entityName, configs)
+      case ConfigType.USER => changeUserOrUserClientIdConfig(entityName, configs, isUserClientId)
+      case ConfigType.BROKER => changeBrokerConfig(parseBroker(entityName), configs)
+      case ConfigType.IP => changeIpConfig(entityName, configs)
+      case _ => throw new IllegalArgumentException(s"$entityType is not a known entityType. Should be one of List(${String.join(", ",ConfigType.ALL)})")
     }
   }
 
@@ -387,17 +391,17 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
       if (isUserClientId) {
         val user = entityName.substring(0, entityName.indexOf("/"))
         val clientId = entityName.substring(entityName.lastIndexOf("/") + 1)
-        val clientsPath = ConfigEntityZNode.path(ConfigType.User, user + "/" + ConfigType.Client)
+        val clientsPath = ConfigEntityZNode.path(ConfigType.USER, user + "/" + ConfigType.CLIENT)
         val clientsChildren = zkClient.getChildren(clientsPath)
         // If current client is the only child of clients, the node of clients can also be deleted.
         if (clientsChildren == Seq(clientId)) {
           pathToDelete = clientsPath
-          val userData = fetchEntityConfig(ConfigType.User, user)
-          val userPath = ConfigEntityZNode.path(ConfigType.User, user)
+          val userData = fetchEntityConfig(ConfigType.USER, user)
+          val userPath = ConfigEntityZNode.path(ConfigType.USER, user)
           val userChildren = zkClient.getChildren(userPath)
           // If the configs of the user are empty and the clients node is the only child of the user,
           // the node of user can also be deleted.
-          if (userData.isEmpty && userChildren == Seq(ConfigType.Client)) {
+          if (userData.isEmpty && userChildren == Seq(ConfigType.CLIENT)) {
             pathToDelete = userPath
           }
         }
@@ -421,7 +425,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
    */
   def changeClientIdConfig(sanitizedClientId: String, configs: Properties): Unit = {
     DynamicConfig.Client.validate(configs)
-    changeEntityConfig(ConfigType.Client, sanitizedClientId, configs)
+    changeEntityConfig(ConfigType.CLIENT, sanitizedClientId, configs)
   }
 
   /**
@@ -440,7 +444,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
       DynamicConfig.Client.validate(configs)
     else
       DynamicConfig.User.validate(configs)
-    changeEntityConfig(ConfigType.User, sanitizedEntityName, configs, isUserClientId)
+    changeEntityConfig(ConfigType.USER, sanitizedEntityName, configs, isUserClientId)
   }
 
   /**
@@ -462,7 +466,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
    */
   def changeIpConfig(ip: String, configs: Properties): Unit = {
     validateIpConfig(ip, configs)
-    changeEntityConfig(ConfigType.Ip, ip, configs)
+    changeEntityConfig(ConfigType.IP, ip, configs)
   }
 
   /**
@@ -475,7 +479,9 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
     if (!zkClient.topicExists(topic))
       throw new UnknownTopicOrPartitionException(s"Topic '$topic' does not exist.")
     // remove the topic overrides
-    LogConfig.validate(configs)
+    LogConfig.validate(configs,
+      kafkaConfig.map(_.extractLogConfigMap).getOrElse(Collections.emptyMap()),
+      kafkaConfig.exists(_.isRemoteLogStorageSystemEnabled))
   }
 
   /**
@@ -488,7 +494,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
    */
    def changeTopicConfig(topic: String, configs: Properties): Unit = {
     validateTopicConfig(topic, configs)
-    changeEntityConfig(ConfigType.Topic, topic, configs)
+    changeEntityConfig(ConfigType.TOPIC, topic, configs)
   }
 
   /**
@@ -501,7 +507,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
   def changeBrokerConfig(brokers: Seq[Int], configs: Properties): Unit = {
     validateBrokerConfig(configs)
     brokers.foreach {
-      broker => changeEntityConfig(ConfigType.Broker, broker.toString, configs)
+      broker => changeEntityConfig(ConfigType.BROKER, broker.toString, configs)
     }
   }
 
@@ -514,7 +520,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
     */
   def changeBrokerConfig(broker: Option[Int], configs: Properties): Unit = {
     validateBrokerConfig(configs)
-    changeEntityConfig(ConfigType.Broker, broker.map(_.toString).getOrElse(ConfigEntityName.Default), configs)
+    changeEntityConfig(ConfigType.BROKER, broker.map(_.toString).getOrElse(ConfigEntityName.Default), configs)
   }
 
   /**
@@ -531,7 +537,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
     var needUpdateConfigs = true
     // If the entityType is quota and node is empty, which means if the configs are empty and no children left,
     // we should try to clean up to avoid continuous increment of zk nodes.
-    if ((ConfigType.Client.equals(rootEntityType) || ConfigType.User.equals(rootEntityType) || ConfigType.Ip.equals(rootEntityType)) && configs.isEmpty) {
+    if ((ConfigType.CLIENT.equals(rootEntityType) || ConfigType.USER.equals(rootEntityType) || ConfigType.IP.equals(rootEntityType)) && configs.isEmpty) {
       if (tryCleanQuotaNodes(rootEntityType, fullSanitizedEntityName, isUserClientId)) {
         needUpdateConfigs = false
       }
@@ -560,7 +566,7 @@ class AdminZkClient(zkClient: KafkaZkClient) extends Logging {
    * @return The successfully gathered configs of all topics
    */
   def getAllTopicConfigs(): Map[String, Properties] =
-    zkClient.getAllTopicsInCluster().map(topic => (topic, fetchEntityConfig(ConfigType.Topic, topic))).toMap
+    zkClient.getAllTopicsInCluster().map(topic => (topic, fetchEntityConfig(ConfigType.TOPIC, topic))).toMap
 
   /**
    * Gets all the entity configs for a given entityType

@@ -20,6 +20,7 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.internals.ClusterResourceListeners;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.network.ChannelBuilder;
@@ -27,6 +28,7 @@ import org.apache.kafka.common.network.ChannelBuilders;
 import org.apache.kafka.common.network.Selector;
 import org.apache.kafka.common.security.JaasContext;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.common.telemetry.internals.ClientTelemetrySender;
 import org.apache.kafka.common.utils.LogContext;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
@@ -155,7 +157,8 @@ public final class ClientUtils {
                                                     Time time,
                                                     int maxInFlightRequestsPerConnection,
                                                     Metadata metadata,
-                                                    Sensor throttleTimeSensor) {
+                                                    Sensor throttleTimeSensor,
+                                                    ClientTelemetrySender clientTelemetrySender) {
         return createNetworkClient(config,
                 config.getString(CommonClientConfigs.CLIENT_ID_CONFIG),
                 metrics,
@@ -168,7 +171,8 @@ public final class ClientUtils {
                 metadata,
                 null,
                 new DefaultHostResolver(),
-                throttleTimeSensor);
+                throttleTimeSensor,
+                clientTelemetrySender);
     }
 
     public static NetworkClient createNetworkClient(AbstractConfig config,
@@ -194,6 +198,7 @@ public final class ClientUtils {
                 null,
                 metadataUpdater,
                 hostResolver,
+                null,
                 null);
     }
 
@@ -209,7 +214,8 @@ public final class ClientUtils {
                                                     Metadata metadata,
                                                     MetadataUpdater metadataUpdater,
                                                     HostResolver hostResolver,
-                                                    Sensor throttleTimeSensor) {
+                                                    Sensor throttleTimeSensor,
+                                                    ClientTelemetrySender clientTelemetrySender) {
         ChannelBuilder channelBuilder = null;
         Selector selector = null;
 
@@ -238,7 +244,8 @@ public final class ClientUtils {
                     apiVersions,
                     throttleTimeSensor,
                     logContext,
-                    hostResolver);
+                    hostResolver,
+                    clientTelemetrySender);
         } catch (Throwable t) {
             closeQuietly(selector, "Selector");
             closeQuietly(channelBuilder, "ChannelBuilder");
@@ -246,13 +253,22 @@ public final class ClientUtils {
         }
     }
 
-    public static <T> List createConfiguredInterceptors(AbstractConfig config,
-                                                        String interceptorClassesConfigName,
-                                                        Class<T> clazz) {
+    public static <T> List configuredInterceptors(AbstractConfig config,
+                                                  String interceptorClassesConfigName,
+                                                  Class<T> clazz) {
         String clientId = config.getString(CommonClientConfigs.CLIENT_ID_CONFIG);
         return config.getConfiguredInstances(
                 interceptorClassesConfigName,
                 clazz,
                 Collections.singletonMap(CommonClientConfigs.CLIENT_ID_CONFIG, clientId));
+    }
+
+    public static ClusterResourceListeners configureClusterResourceListeners(List<?>... candidateLists) {
+        ClusterResourceListeners clusterResourceListeners = new ClusterResourceListeners();
+
+        for (List<?> candidateList: candidateLists)
+            clusterResourceListeners.maybeAddAll(candidateList);
+
+        return clusterResourceListeners;
     }
 }

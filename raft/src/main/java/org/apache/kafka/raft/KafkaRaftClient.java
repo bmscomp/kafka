@@ -438,7 +438,6 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
         );
 
         LeaderState<T> state = quorum.transitionToLeader(endOffset, accumulator);
-        maybeFireLeaderChange(state);
 
         log.initializeLeaderEpoch(quorum.epoch());
 
@@ -1258,7 +1257,8 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
      * - {@link Errors#POSITION_OUT_OF_RANGE} if the request snapshot offset out of range
      */
     private FetchSnapshotResponseData handleFetchSnapshotRequest(
-        RaftRequest.Inbound requestMetadata
+        RaftRequest.Inbound requestMetadata,
+        long currentTimeMs
     ) {
         FetchSnapshotRequestData data = (FetchSnapshotRequestData) requestMetadata.data;
 
@@ -1340,6 +1340,9 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
         }
 
         UnalignedRecords records = snapshot.slice(partitionSnapshot.position(), Math.min(data.maxBytes(), maxSnapshotSize));
+
+        LeaderState<T> state = quorum.leaderStateOrThrow();
+        state.updateCheckQuorumForFollowingVoter(data.replicaId(), currentTimeMs);
 
         return FetchSnapshotResponse.singleton(
             log.topicPartition(),
@@ -1702,7 +1705,7 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
                 break;
 
             case FETCH_SNAPSHOT:
-                responseFuture = completedFuture(handleFetchSnapshotRequest(request));
+                responseFuture = completedFuture(handleFetchSnapshotRequest(request, currentTimeMs));
                 break;
 
             default:
@@ -1876,6 +1879,7 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
 
         FetchSnapshotRequestData request = FetchSnapshotRequest.singleton(
             clusterId,
+            quorum().localIdOrSentinel(),
             log.topicPartition(),
             snapshotPartition -> {
                 return snapshotPartition
@@ -1991,7 +1995,8 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
         LeaderState<T> state = quorum.leaderStateOrThrow();
         maybeFireLeaderChange(state);
 
-        if (shutdown.get() != null || state.isResignRequested()) {
+        long timeUntilCheckQuorumExpires = state.timeUntilCheckQuorumExpires(currentTimeMs);
+        if (shutdown.get() != null || state.isResignRequested() || timeUntilCheckQuorumExpires == 0) {
             transitionToResigned(state.nonLeaderVotersByDescendingFetchOffset());
             return 0L;
         }
@@ -2007,7 +2012,7 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
             this::buildBeginQuorumEpochRequest
         );
 
-        return Math.min(timeUntilFlush, timeUntilSend);
+        return Math.min(timeUntilFlush, Math.min(timeUntilSend, timeUntilCheckQuorumExpires));
     }
 
     private long maybeSendVoteRequests(
@@ -2376,7 +2381,6 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
             // take no further action.
             logger.debug("Ignoring call to resign from epoch {} since it is smaller than the " +
                 "current epoch {}", epoch, currentEpoch);
-            return;
         } else if (!leaderAndEpoch.isLeader(quorum.localIdOrThrow())) {
             throw new IllegalArgumentException("Cannot resign from epoch " + epoch +
                 " since we are not the leader");
@@ -2653,11 +2657,17 @@ public class KafkaRaftClient<T> implements RaftClient<T> {
         }
 
         private void maybeFireLeaderChange(LeaderAndEpoch leaderAndEpoch, long epochStartOffset) {
-            // If this node is becoming the leader, then we can fire `handleClaim` as soon
+            // If this node is becoming the leader, then we can fire `handleLeaderChange` as soon
             // as the listener has caught up to the start of the leader epoch. This guarantees
             // that the state machine has seen the full committed state before it becomes
             // leader and begins writing to the log.
-            if (shouldFireLeaderChange(leaderAndEpoch) && nextOffset() >= epochStartOffset) {
+            //
+            // Note that the raft client doesn't need to compare nextOffset against the high-watermark
+            // to guarantee that the listener has caught up to the high-watermark. This is true because
+            // the only way nextOffset can be greater than epochStartOffset is for the leader to have
+            // established the new high-watermark (of at least epochStartOffset + 1) and for the listener
+            // to have consumed up to that new high-watermark.
+            if (shouldFireLeaderChange(leaderAndEpoch) && nextOffset() > epochStartOffset) {
                 lastFiredLeaderChange = leaderAndEpoch;
                 listener.handleLeaderChange(leaderAndEpoch);
             }
