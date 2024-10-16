@@ -36,22 +36,22 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
+
+/**
+ * This benchmark calculates the empirical evidence of different implementation for encoding/decoding a protobuf
+ * <a href="https://protobuf.dev/programming-guides/encoding/#varints">VarInt</a> and VarLong.
+ * <p>
+ * The benchmark uses JMH and calculates results for different sizes of variable length integer. We expect most of the
+ * usage in Kafka code base to be 1 or 2 byte integers.
+ */
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Fork(3)
 @Warmup(iterations = 3, time = 1)
 @Measurement(iterations = 5, time = 1)
-/**
- * This benchmark calculates the empirical evidence of different implementation for encoding/decoding a protobuf
- * <a href="https://protobuf.dev/programming-guides/encoding/#varints">VarInt</a> and VarLong.
- *
- * The benchmark uses JMH and calculates results for different sizes of variable length integer. We expect most of the
- * usage in Kafka code base to be 1 or 2 byte integers.
- */
 public class ByteUtilsBenchmark {
     private static final int DATA_SET_SAMPLE_SIZE = 16384;
 
@@ -74,7 +74,7 @@ public class ByteUtilsBenchmark {
 
         /**
          * Generates a random int64 number which occupies exactly bytesSet in the variable length encoding for int64
-         *
+         * <p>
          * Upper bound is set by finding the largest number that can be represented by N bits. This number is found
          * by bit shifting by N and subtracting decimal 1. For example, for 2 bytes = 16 bits, we calculate the
          * upper bound by:
@@ -82,7 +82,7 @@ public class ByteUtilsBenchmark {
          * 2. Subtract 1 from 65536 = 65535
          * 3. 65535 is the upper bound which is represented in binary as 1111 1111 1111 1111 i.e. largest number
          *    that could be represented by 2 bytes.
-         *
+         * <p>
          * Hence, range of random number of different byte length is:
          * 1 byte - [1, 255)
          * 2 byte - [256, 65535)
@@ -196,7 +196,7 @@ public class ByteUtilsBenchmark {
 
     @Benchmark
     @CompilerControl(CompilerControl.Mode.DONT_INLINE)
-    public void testUnsignedReadVarlongUnrolled(IterationStateForLong state, Blackhole bk) throws IOException {
+    public void testUnsignedReadVarlongUnrolled(IterationStateForLong state, Blackhole bk) {
         for (long randomValue : state.getRandomValues()) {
             ByteUtils.writeUnsignedVarlong(randomValue, state.getTestBuffer());
             // prepare for reading
@@ -222,7 +222,7 @@ public class ByteUtilsBenchmark {
     @CompilerControl(CompilerControl.Mode.DONT_INLINE)
     public void testUnsignedWriteVarintUnrolled(IterationStateForInt state) {
         for (int randomValue : state.getRandomValues()) {
-            ByteUtilsBenchmark.writeUnsignedVarintUnrolled(randomValue, state.getTestBuffer());
+            ByteUtils.writeUnsignedVarint(randomValue, state.getTestBuffer());
             state.getTestBuffer().clear();
         }
     }
@@ -332,7 +332,7 @@ public class ByteUtilsBenchmark {
 
     /**
      * Implementation copied from Protobuf's implementation.
-     * see: https://github.com/protocolbuffers/protobuf/blob/f1c7820c9bd0e31f8b7d091092851441ad2716b6/java/core/src/main/java/com/google/protobuf/CodedInputStream.java#L1048
+     * see: <a href="https://github.com/protocolbuffers/protobuf/blob/f1c7820c9bd0e31f8b7d091092851441ad2716b6/java/core/src/main/java/com/google/protobuf/CodedInputStream.java#L1048">CodedInputStream.java</a>
      */
     private static int readUnsignedVarintProtoBuf(ByteBuffer buf) {
         fastpath:
@@ -378,7 +378,7 @@ public class ByteUtilsBenchmark {
 
     /**
      * Implementation copied from Netty
-     * see: https://github.com/netty/netty/blob/59aa6e635b9996cf21cd946e64353270679adc73/codec/src/main/java/io/netty/handler/codec/protobuf/ProtobufVarint32FrameDecoder.java#L73
+     * see: <a href="https://github.com/netty/netty/blob/59aa6e635b9996cf21cd946e64353270679adc73/codec/src/main/java/io/netty/handler/codec/protobuf/ProtobufVarint32FrameDecoder.java#L73">ProtobufVarint32FrameDecoder.java</a>
      */
     private static int readUnsignedVarintNetty(ByteBuffer buffer) {
         byte tmp = buffer.get();
@@ -411,7 +411,7 @@ public class ByteUtilsBenchmark {
 
     /**
      * Implementation extended from Int implementation from Netty
-     * see: https://github.com/netty/netty/blob/59aa6e635b9996cf21cd946e64353270679adc73/codec/src/main/java/io/netty/handler/codec/protobuf/ProtobufVarint32FrameDecoder.java#L73
+     * see: <a href="https://github.com/netty/netty/blob/59aa6e635b9996cf21cd946e64353270679adc73/codec/src/main/java/io/netty/handler/codec/protobuf/ProtobufVarint32FrameDecoder.java#L73">ProtobufVarint32FrameDecoder.java</a>
      */
     private static long readUnsignedVarlongNetty(ByteBuffer buffer) {
         byte tmp = buffer.get();
@@ -554,31 +554,4 @@ public class ByteUtilsBenchmark {
         }
     }
 
-    /*
-     * Implementation copied from https://github.com/astei/varint-writing-showdown/tree/dev (MIT License)
-     * see: https://github.com/astei/varint-writing-showdown/blob/6b1a4baec4b1f0ce65fa40cf0b282ec775fdf43e/src/jmh/java/me/steinborn/varintshowdown/res/SmartNoDataDependencyUnrolledVarIntWriter.java#L8
-     */
-    private static void writeUnsignedVarintUnrolled(int value, ByteBuffer buffer) {
-        if ((value & (0xFFFFFFFF << 7)) == 0) {
-            buffer.put((byte) value);
-        } else {
-            buffer.put((byte) (value & 0x7F | 0x80));
-            if ((value & (0xFFFFFFFF << 14)) == 0) {
-                buffer.put((byte) ((value >>> 7) & 0xFF));
-            } else {
-                buffer.put((byte) ((value >>> 7) & 0x7F | 0x80));
-                if ((value & (0xFFFFFFFF << 21)) == 0) {
-                    buffer.put((byte) ((value >>> 14) & 0xFF));
-                } else {
-                    buffer.put((byte) ((value >>> 14) & 0x7F | 0x80));
-                    if ((value & (0xFFFFFFFF << 28)) == 0) {
-                        buffer.put((byte) ((value >>> 21) & 0xFF));
-                    } else {
-                        buffer.put((byte) ((value >>> 21) & 0x7F | 0x80));
-                        buffer.put((byte) ((value >>> 28) & 0xFF));
-                    }
-                }
-            }
-        }
-    }
 }
