@@ -3842,7 +3842,8 @@ project(':connect:test-plugins') {
   }
 }
 
-task aggregatedJavadoc(type: Javadoc, dependsOn: compileJava) {
+tasks.register('aggregatedJavadoc', Javadoc) {
+  dependsOn compileJava
   def projectsWithJavadoc = subprojects.findAll { it.javadoc.enabled }
   source = projectsWithJavadoc.collect { it.sourceSets.main.allJava }
   classpath = files(projectsWithJavadoc.collect { it.sourceSets.main.compileClasspath })
