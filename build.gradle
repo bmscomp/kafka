@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import org.ajoberstar.grgit.Grgit
-import org.gradle.api.JavaVersion
 
 import java.nio.charset.StandardCharsets
 
@@ -170,9 +169,10 @@ allprojects {
       }
     }
   }
-  task printAllDependencies(type: DependencyReportTask) {}
 
-  tasks.withType(Javadoc) {
+  tasks.register('printAllDependencies', DependencyReportTask) {}
+
+  tasks.withType(Javadoc).configureEach {
     options.charSet = 'UTF-8'
     options.docEncoding = 'UTF-8'
     options.encoding = 'UTF-8'
@@ -270,7 +270,7 @@ subprojects {
 
   // enable running :dependencies task recursively on all subprojects
   // eg: ./gradlew allDeps
-  task allDeps(type: DependencyReportTask) {}
+  tasks.register('allDeps', DependencyReportTask) {}
   // enable running :dependencyInsight task recursively on all subprojects
   // eg: ./gradlew allDepInsight --configuration runtime --dependency com.fasterxml.jackson.core:jackson-databind
   task allDepInsight(type: DependencyInsightReportTask) {showingAllVariants = false} doLast {}
