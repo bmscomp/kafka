@@ -680,11 +680,11 @@ subprojects {
     from javadoc.destinationDir
   }
 
-  task docsJar(dependsOn: javadocJar)
+  tasks.register('docsJar') { dependsOn javadocJar }
 
   test.dependsOn('javadoc')
 
-  task systemTestLibs(dependsOn: jar)
+  tasks.register('systemTestLibs') { dependsOn jar }
 
   if (!sourceSets.test.allSource.isEmpty()) {
     task testJar(type: Jar) {
