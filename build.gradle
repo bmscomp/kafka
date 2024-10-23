@@ -148,7 +148,7 @@ allprojects {
     }
   }
 
-  configurations.all {
+  configurations.configureEach {
     // zinc is the Scala incremental compiler, it has a configuration for its own dependencies
     // that are unrelated to the project dependencies, we should not change them
     if (name != "zinc") {
